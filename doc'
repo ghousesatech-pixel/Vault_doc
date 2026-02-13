@@ -1,3 +1,10 @@
+
+Sample Deployment Pattern
+envFrom:
+  - secretRef:
+      name: vault-creds-env
+
+
 | Aspect          | Details               |
 | --------------- | --------------------- |
 | Secret Delivery | Kubernetes Secret     |
