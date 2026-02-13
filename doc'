@@ -1,0 +1,33 @@
+| Aspect          | Details               |
+| --------------- | --------------------- |
+| Secret Delivery | Kubernetes Secret     |
+| Consumption     | Environment Variables |
+| Pod Restart     | ✅ Required            |
+| Rotation        | 🟡 Partial            |
+| Sync Interval   | Vault TTL based       |
+| Simplicity      | 🟢 Medium             |
+
+Important Notes
+
+⚠️ Kubernetes does NOT update environment variables in running pods
+⚠️ Even if the Secret updates, the pod must restart
+
+Pros
+
+Simple Kubernetes-native pattern
+
+Easy for application teams
+
+Clear ownership model
+
+Cons
+
+Pod restarts required
+
+Risk of downtime for stateful apps
+
+Secrets briefly exist in etcd
+Best Use Case
+
+✔️ Applications that can tolerate restarts
+✔️ Legacy apps expecting env vars
