@@ -1,40 +1,66 @@
+Method 3: Vault Secrets Mounted as Files (No Pod Restart Required)
+Overview
 
-Sample Deployment Pattern
-envFrom:
-  - secretRef:
-      name: vault-creds-env
+Secrets are mounted directly into the container filesystem using the Secrets Store CSI Driver.
 
+Applications read secrets from files instead of env vars.
 
-| Aspect          | Details               |
-| --------------- | --------------------- |
-| Secret Delivery | Kubernetes Secret     |
-| Consumption     | Environment Variables |
-| Pod Restart     | ✅ Required            |
-| Rotation        | 🟡 Partial            |
-| Sync Interval   | Vault TTL based       |
-| Simplicity      | 🟢 Medium             |
+Flow
 
-Important Notes
+Create SecretProviderClass
 
-⚠️ Kubernetes does NOT update environment variables in running pods
-⚠️ Even if the Secret updates, the pod must restart
+CSI driver mounts Vault secrets as files
+
+Files are periodically refreshed
+
+Application reads updated values dynamically
+
+No pod restart required
+
+Sample Volume Mount
+volumeMounts:
+  - name: secrets-store
+    mountPath: /mnt/secrets-store
+    readOnly: true
+
+Key Characteristics
+Aspect	Details
+Secret Delivery	Filesystem
+Consumption	File read
+Pod Restart	❌ Not required
+Rotation	✅ Automatic
+Security	🟢 High
+App Change Needed	🟡 Yes
+Important Considerations
+
+App must be capable of:
+
+Re-reading files
+
+Handling updated secrets dynamically
+
+Recommended mount location:
+
+/tmp or ephemeral volume
+
+Avoid long-lived file caching
 
 Pros
 
-Simple Kubernetes-native pattern
+Zero-downtime secret rotation
 
-Easy for application teams
+No Kubernetes Secret object
 
-Clear ownership model
+Best security posture
 
 Cons
 
-Pod restarts required
+App changes required
 
-Risk of downtime for stateful apps
+Not suitable for env-only apps
 
-Secrets briefly exist in etcd
 Best Use Case
 
-✔️ Applications that can tolerate restarts
-✔️ Legacy apps expecting env vars
+✔️ Modern microservices
+✔️ High-availability workloads
+✔️ Long-running services
