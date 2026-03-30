@@ -1,0 +1,229 @@
+# 📊 Dataiku MLOps Mini Project – Real Estate Price Prediction
+
+---
+
+## 🧾 1. Overview
+
+This document describes the implementation of an end-to-end Machine Learning pipeline using **Dataiku DSS**.
+The objective of this project is to build, train, and deploy a regression model to predict real estate property prices.
+
+---
+
+## 🎯 2. Objective
+
+* Build a reusable ML pipeline in Dataiku
+* Perform data cleaning and feature engineering
+* Train and evaluate regression models
+* Deploy the best-performing model
+* Enable batch scoring for predictions
+
+---
+
+## 🏗️ 3. Architecture Overview
+
+```
+Raw Dataset
+   ↓
+Prepare Recipe (Data Cleaning + Feature Engineering)
+   ↓
+Prepared Dataset
+   ↓
+AutoML Training (Regression)
+   ↓
+Model Selection
+   ↓
+Saved Model
+   ↓
+Scoring (Predictions)
+```
+
+---
+
+## 📂 4. Dataset Details
+
+* **Source:** Dataiku Sample Dataset (Real Estate Sales)
+* **Volume:** ~94,000 records
+* **Key Columns:**
+
+  * PropertyPrice (Target Variable)
+  * LivingSurface
+  * NumberOfRooms
+  * PropertyType
+  * ZIPCode
+  * TransactionYear
+
+---
+
+## 🔧 5. Data Preparation
+
+A **Prepare Recipe** was created to clean and transform the raw dataset.
+
+### 5.1 Data Cleaning
+
+* Removed non-relevant columns:
+
+  * `Address`
+  * `TransactionId`
+
+**Reason:** These fields do not contribute to predictive modeling.
+
+---
+
+### 5.2 Data Type Validation
+
+Ensured correct column types:
+
+* Categorical:
+
+  * PropertyType
+  * ZIPCode
+* Numerical:
+
+  * LivingSurface
+  * TransactionYear
+
+---
+
+### 5.3 Feature Engineering
+
+Created a new feature:
+
+```
+price_per_sqft = PropertyPrice / LivingSurface
+```
+
+**Reason:**
+Derived features improve model performance by capturing meaningful relationships.
+
+---
+
+### 5.4 Output Dataset
+
+* **Dataset Name:** `real_estate_sales_prepared`
+
+---
+
+## 🤖 6. Model Training
+
+Used **Dataiku Visual ML (AutoML)** for regression.
+
+### 6.1 Configuration
+
+* **Target Variable:** PropertyPrice
+* **Problem Type:** Regression
+
+---
+
+### 6.2 Models Evaluated
+
+* Ridge Regression
+* Random Forest
+
+---
+
+### 6.3 Evaluation Metric
+
+* **R² Score (Coefficient of Determination)**
+
+---
+
+### 6.4 Results
+
+| Model            | R² Score |
+| ---------------- | -------- |
+| Ridge Regression | ~0.927 ✅ |
+| Random Forest    | Lower    |
+
+---
+
+## 🏆 7. Model Selection
+
+Selected **Ridge Regression** as the final model.
+
+### Reason:
+
+* Highest R² score
+* Better generalization
+* Simpler and interpretable
+
+---
+
+## 🚀 8. Model Deployment
+
+The trained model was deployed as a **Saved Model**.
+
+* **Model Name:** `real_estate_price_model_v1`
+
+### Purpose:
+
+* Reusable for batch scoring
+* Production-ready model artifact
+
+---
+
+## 📈 9. Scoring (Prediction)
+
+Used the Saved Model to generate predictions.
+
+* **Input Dataset:** `real_estate_sales_prepared`
+* **Output Dataset:** `real_estate_scored`
+
+### Output Includes:
+
+* Predicted Property Price
+* Actual Property Price
+* Prediction Error
+
+---
+
+## 🔍 10. Model Evaluation & Monitoring (Future Scope)
+
+Planned enhancements:
+
+* Model Evaluation Store
+* Performance tracking over time
+* Data drift detection
+* Automated alerts
+
+---
+
+## 🔄 11. Pipeline Summary
+
+```
+Data Ingestion → Data Preparation → Feature Engineering → Model Training → Model Selection → Deployment → Scoring
+```
+
+---
+
+## 💡 12. Key Learnings
+
+* Data quality significantly impacts model performance
+* Feature engineering improves predictive accuracy
+* AutoML simplifies model experimentation
+* Dataiku Flow enables end-to-end pipeline visualization
+
+---
+
+## 📊 13. Business Value
+
+* Predict property prices accurately
+* Assist in real estate valuation
+* Enable data-driven decision making
+* Automate ML workflows
+
+---
+
+## 🔮 14. Future Enhancements (MLOps)
+
+* Automate pipeline using Dataiku Scenarios
+* Deploy model as REST API
+* Integrate with AWS services (S3, Lambda, API Gateway)
+* Implement CI/CD for model lifecycle
+
+---
+
+## 🧠 15. One-Line Summary
+
+> Built an end-to-end MLOps pipeline in Dataiku for real estate price prediction, including data preparation, feature engineering, regression modeling, model evaluation, and deployment.
+
+---
