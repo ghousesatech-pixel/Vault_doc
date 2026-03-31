@@ -1,71 +1,25 @@
-### 📊 Dataiku MLOps Mini Project – Update
+House Price Prediction – Progress Update
 
-Implemented an end-to-end ML pipeline in Dataiku DSS for real estate price prediction.
+Completed the end-to-end ML pipeline for house price prediction using Dataiku.
 
----
-
-### ✅ Work Completed
-
-**1. Data Ingestion**
-
-* Imported Dataiku sample dataset (~94K records)
-
-**2. Data Preparation**
-
-* Created Prepare recipe for data cleaning and transformation
-* Removed non-relevant columns: `Address`, `TransactionId`
-* Validated data types (categorical & numerical)
-* Added feature:
-  `price_per_sqft = PropertyPrice / LivingSurface`
-
-**3. Model Training**
-
-* Used Dataiku AutoML (Regression)
-* Target: `PropertyPrice`
-* Models evaluated:
-
-  * Ridge Regression
-  * Random Forest
-
-**4. Model Selection**
-
-* Selected **Ridge Regression** (R² ≈ 0.927)
-* Reason: Better performance and generalization
-
-**5. Model Deployment**
-
-* Saved model as: `real_estate_price_model_v1`
-
-**6. Scoring**
-
-* Generated predictions using Score recipe
-* Output dataset: `real_estate_scored`
-* Includes predicted price, actual price, and error
-
----
-
-### 🔄 Pipeline Flow
-
-Raw Data → Prepare → Feature Engineering → Model Training → Model Selection → Saved Model → Scoring
-
----
-
-### 📌 Key Outcome
-
-* Built a reusable ML pipeline in Dataiku
-* Automated property price prediction based on input features
-* Demonstrated full ML lifecycle (data → model → prediction)
-
----
-
-### 🔮 Next Steps
-
-* Implement Model Evaluation Store (monitoring & drift)
-* Automate pipeline using Scenarios
-* Explore API deployment for real-time predictions
-
----
-
-### 🧠 Summary
-
-End-to-end regression-based ML pipeline successfully implemented in Dataiku with feature engineering, model selection, and deployment for batch predictions.
+✅ Work Completed
+Ingested and processed housing dataset (~20K records)
+Performed data cleaning (handled nulls, duplicates, type corrections)
+Implemented feature engineering to improve model performance
+Split data into train/test datasets
+Trained multiple regression models using Dataiku AutoML
+Selected Random Forest as best-performing model (R² ≈ 0.75)
+Deployed model for scoring (prediction)
+Generated predictions on test dataset
+📈 Model Evaluation
+Compared actual vs predicted values
+Built visualization to analyze prediction trends
+Current chart shows:
+price → actual house price (ground truth)
+average prediction → model’s predicted value for each price range
+Observed that predictions follow the actual price distribution trend, indicating good model alignment
+📊 Dashboard
+Created initial dashboard with:
+Prediction distribution
+Model performance visualization
+Feature impact insights
