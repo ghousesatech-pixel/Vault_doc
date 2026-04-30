@@ -1,149 +1,213 @@
-Today’s Work – Simple Explanation
-🎯 Goal
+SQS Queue Monitoring & Alerting – QA Implementation (EKS)
+🔹 1. Overview
 
-Build and deploy a Machine Learning model that can predict house prices.
+This implementation provides proactive monitoring and alerting for Amazon SQS queues used by EKS-based consumer services.
 
-🧱 Step 1: Data Preparation
-Loaded housing dataset
-Cleaned and prepared data
-Selected important features like:
-income
-house age
-rooms
-location
+Goal: Detect issues early such as:
 
-👉 Outcome: Ready-to-use dataset
+Backlog buildup (consumers not keeping up)
+Message processing delays (stuck or slow processing)
+Abnormal in-flight message behavior
 
-🤖 Step 2: Model Training
-Trained a Random Forest model
-Model learned patterns from historical data
+End-to-end flow:
 
-👉 Outcome: Trained ML model for price prediction
+SQS → CloudWatch Metrics → CloudWatch Alarms → SNS → Lambda → Moogsoft (QA)
 
-📊 Step 3: Model Evaluation
-Checked model performance (accuracy metrics)
-Selected best-performing model
+When thresholds are breached, alerts are sent to Moogsoft (QA) for centralized incident visibility.
 
-👉 Outcome: Validated model ready for use
+🔹 2. Architecture (Explained)
+Producer → SQS Queue → EKS Consumer Pods
+                     ↓
+               CloudWatch Metrics
+                     ↓
+               CloudWatch Alarms
+                     ↓
+                    SNS
+                     ↓
+                  Lambda
+                     ↓
+              Moogsoft (QA)
+How each component works:
+SQS Queue
+Stores messages produced by upstream systems.
+EKS pods consume these messages.
+CloudWatch Metrics
+AWS automatically publishes SQS metrics every minute.
+CloudWatch Alarms
+Evaluates metrics against thresholds.
+Changes state: OK → ALARM → OK.
+SNS (Simple Notification Service)
+Acts as a messaging layer.
+Sends alarm events to subscribers (Lambda, email).
+Lambda
+Transforms CloudWatch alarm payload into Moogsoft format.
+Sends HTTP POST request to Moogsoft API.
+Moogsoft (QA)
+Receives alerts and creates incidents/events.
+🔹 3. Monitored SQS Metrics (Deep Explanation)
+1️⃣ ApproximateNumberOfMessagesVisible
+Meaning: Messages available for consumption.
+Interpretation:
+0 → No backlog
+Increasing → Consumers lagging
+Why important: Primary indicator of backlog
+2️⃣ ApproximateNumberOfMessagesNotVisible
+Meaning: Messages currently being processed (in-flight)
+Interpretation:
+High value → Active processing
+Stuck high → Consumers may be hanging
+Why important: Detect processing issues
+3️⃣ ApproximateAgeOfOldestMessage
+Meaning: Time (seconds) since oldest message entered queue
+Interpretation:
+Low → Healthy processing
+High → Messages stuck / slow processing
+Why important: Detect latency and SLA violations
+🔹 4. CloudWatch Alarm Configuration (Detailed)
+General Settings
+Namespace: AWS/SQS
+Period: 1 minute
+Statistic: Average
+Evaluation Frequency: Every 1 minute
+🔸 Alarm 1: Queue Backlog (sqs_visible)
+Metric: ApproximateNumberOfMessagesVisible
+Condition: > 5
+Purpose: Detect when messages accumulate faster than consumption
 
-🏛️ Step 4: Governance (Enterprise Process)
-Registered model in Dataiku Model Registry
-Applied governance workflow:
-Development → Review → Deployment → Production
+Behavior:
 
-👉 Outcome: Model approved for deployment (compliant with enterprise standards)
+0–5 messages → OK
 
-🔁 Step 5: Batch Prediction Automation
-Created Scenario (automation pipeline)
-Automatically builds dataset and generates predictions
+5 messages → ALARM
 
-👉 Outcome: Automated batch predictions
+🔸 Alarm 2: Oldest Message Age (sqs_old_msg)
+Metric: ApproximateAgeOfOldestMessage
+Example Threshold: > 60 seconds (QA)
+Purpose: Detect delayed processing
 
-⚡ Step 6: Real-Time API Deployment (Major Achievement)
-Created API service
-Exposed model as an endpoint:
-predict-house-price
-Tested API with input → got prediction output
+Behavior:
 
-👉 Outcome:
-✔️ Model can now give real-time predictions via API
+Low age → OK
+Increasing age → ALARM
+🔸 Alarm 3: In-flight Messages (sqs_not_visible)
+Metric: ApproximateNumberOfMessagesNotVisible
+Purpose: Monitor processing load
 
-🚧 Current Limitation
-Full production deployment requires API Deployer permissions
-Waiting for admin access
-🚀 Final Outcome
+Behavior:
 
-Today we successfully built:
+Normal processing → OK
+Sudden spike → ALARM (if configured)
+🔹 5. Alarm Notification Flow (Step-by-Step)
+Step 1: Alarm State Change
 
-End-to-end ML pipeline
-Governed model lifecycle
-Automated batch predictions
-Real-time prediction API (working in dev mode)
-🧠 One-line Summary (for quick explanation)
+CloudWatch detects threshold breach:
 
-Built an end-to-end ML pipeline in Dataiku with governance, automation, and real-time API prediction capability.
+OK → ALARM
+Step 2: SNS Trigger
+Alarm sends notification to SNS Topic
+SNS acts as a fan-out mechanism
+Step 3: Lambda Execution
+SNS invokes Lambda
+Lambda receives CloudWatch payload
+Extracts:
+Alarm name
+Metric
+State (ALARM / OK)
+Timestamp
+Step 4: Moogsoft API Call
 
-💼 If your manager asks “what’s next?”
+Lambda sends HTTP POST request to:
 
-You can say:
+https://moog-dev-appl-lb1.1dc.com/generic_rest
+🔹 6. Moogsoft Payload (Explained)
 
-Next step is deploying the API to a production environment using API Deployer once access is granted.
+Example:
 
-If you want, I can also give:
+{
+  "source": "sqs-alerting-poc-queue",
+  "source_id": "aws-sqs",
+  "description": "SQS backlog threshold exceeded",
+  "agent": "CloudWatch",
+  "agent_location": "us-east-2",
+  "class": "SQS",
+  "type": "QueueBacklog",
+  "severity": 5
+}
+Field Explanation
+Field	Description
+source	Queue name
+source_id	Identifier of AWS service
+description	Alert message
+agent	Monitoring system (CloudWatch)
+agent_location	AWS region
+class	Resource type
+type	Alert type
+severity	Alert severity
+Severity Mapping
+CloudWatch State	Moogsoft Severity
+ALARM	5 (Critical)
+OK	0 (Clear)
+🔹 7. Testing & Validation (Detailed)
+🔸 Step 1: Generate Backlog
+QUEUE_URL="https://sqs.us-east-2.amazonaws.com/693779145154/sqs-alerting-poc-queue"
 
-⭐ Jira update version
-⭐ Confluence documentation
-⭐ Interview explanation
+for i in $(seq 1 20); do
+  aws sqs send-message \
+    --region us-east-2 \
+    --queue-url "$QUEUE_URL" \
+    --message-body "test-$i"
+done
 
-Just tell me 👍
+What happens internally:
 
-Tell me what we did in govern node
+Messages pile up in queue
+CloudWatch metric increases
+Alarm evaluates threshold
+Alarm triggers
+🔸 Step 2: Observe Alarm
 
-Here is a clear, simple explanation of what you did in the Dataiku Govern node 👇
+Expected:
 
-✅ What we did in Govern Node (Simple Explanation)
-🎯 Purpose of Govern Node
+OK → ALARM
+🔸 Step 3: Verify Notifications
+SNS sends event
+Lambda triggers
+Moogsoft receives alert
+Email notification (if configured)
+🔸 Step 4: Clear the Queue
+aws sqs purge-queue \
+  --region us-east-2 \
+  --queue-url "$QUEUE_URL"
+🔸 Step 5: Verify Recovery
 
-To manage, review, and approve the ML model before production (like a control/checkpoint layer).
+Expected:
 
-🧱 Step 1: Registered the Model
-Took the trained model (Random Forest)
-Added it to Model Registry (Govern node)
+ALARM → OK
+Recovery notification sent
+Moogsoft receives clear event
+🔹 8. Observations
+Metrics update every 1 minute
+Alarm state transitions behave as expected
+Notification flow is working end-to-end
+Moogsoft integration successfully receives both:
+Alarm events
+Recovery events
+🔹 9. Important Considerations
+Queue purge is only for testing
+Thresholds should be tuned for production workloads
+Ensure:
+SNS subscriptions are confirmed
+Lambda has outbound network access
+Avoid false positives by adjusting thresholds
+🔹 10. Next Steps (Recommended)
+Move integration from QA → PROD Moogsoft endpoint
+Tune thresholds based on traffic patterns
+Add auto-scaling (KEDA / HPA)
+Extend monitoring to all production queues
+🔹 11. Final Status
 
-👉 Meaning:
-The model is now tracked and managed centrally
-
-🏛️ Step 2: Applied Governance Workflow
-Created a governed project using Dataiku Standard template
-This automatically created lifecycle stages:
-Development
-Review
-Deployment
-Production
-
-👉 Meaning:
-Model must go through approval steps before production
-
-👤 Step 3: Assigned Roles for Approval
-Assigned roles like:
-Business reviewer
-Risk & Compliance
-IT / Operations
-
-👉 Meaning:
-Different teams are responsible for approving the model
-
-✔️ Step 4: Completed Review & Approval
-Approved the model (self or assigned role)
-Workflow moved forward:
-Development → Review → Approved
-
-👉 Meaning:
-Model passed governance checks
-
-🚀 Step 5: Promoted Model Across Stages
-
-You moved the model through:
-
-Review → Deployment
-Deployment → Production
-
-👉 Meaning:
-Model is now approved for production use
-
-🔍 What Governance Ensures
-Model is validated before use
-Proper approvals are recorded
-Full audit trail exists
-Compliance with enterprise policies
-🧠 Simple One-Line Explanation
-
-In Govern node, we registered the model, applied approval workflow, assigned reviewers, and moved the model through approval stages up to production readiness.
-
-💼 Manager-Friendly Version
-
-We onboarded the trained model into Dataiku Govern, applied a standard governance workflow, assigned reviewers, and completed approval steps to make the model production-ready.
-
-🔥 Technical (Interview Version)
-
-I integrated the trained model into Dataiku Govern, applied a lifecycle workflow, configured role-based approvals, and promoted the model through development, review, and production stages ensuring compliance and traceability.
+✔ SQS metrics validated
+✔ CloudWatch alarms configured
+✔ SNS integration working
+✔ Lambda → Moogsoft integration validated
+✔ End-to-end alert flow tested
